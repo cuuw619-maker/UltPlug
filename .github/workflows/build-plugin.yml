@@ -1,4 +1,4 @@
-name: Build Zftoz MargyT plugin
+name: Build Multitool MargyT plugin
 
 on:
   workflow_dispatch:
@@ -21,21 +21,21 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Build Zftoz .mtp
+      - name: Build Multitool .mtp
         shell: bash
         run: |
           set -e
-          rm -rf MargyT/examples/zftoz
-          mkdir -p MargyT/examples/zftoz/java/cat/cuuw619/faklikes
-          cp manifest.json MargyT/examples/zftoz/manifest.json
-          cp java/cat/cuuw619/faklikes/FakeLikes.java MargyT/examples/zftoz/java/cat/cuuw619/faklikes/FakeLikes.java
+          rm -rf MargyT/examples/multitool
+          mkdir -p MargyT/examples/multitool/java/cat/cuuw619/faklikes
+          cp manifest.json MargyT/examples/multitool/manifest.json
+          cp java/cat/cuuw619/faklikes/FakeLikes.java MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java
           cd MargyT
-          python3 -m margyt.plugin examples/zftoz
-          test -f examples/zftoz/margyt.zftoz.mtp
-          unzip -l examples/zftoz/margyt.zftoz.mtp
-      - name: Upload Zftoz 2.2.0
+          python3 -m margyt.plugin examples/multitool
+          test -f examples/multitool/margyt.multitool.mtp
+          unzip -l examples/multitool/margyt.multitool.mtp
+      - name: Upload Multitool 2.3.0
         uses: actions/upload-artifact@v4
         with:
-          name: Zftoz-2.2.0
-          path: MargyT/examples/zftoz/margyt.zftoz.mtp
+          name: Multitool-2.3.0
+          path: MargyT/examples/multitool/margyt.multitool.mtp
           if-no-files-found: error
