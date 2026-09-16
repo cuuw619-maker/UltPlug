@@ -1,0 +1,53 @@
+name: Build MargyT plugin
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout UltPlug
+        uses: actions/checkout@v4
+
+      - name: Checkout MargyT toolchain
+        uses: actions/checkout@v4
+        with:
+          repository: narezany/MargyT
+          path: MargyT
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build .mtp
+        shell: bash
+        run: |
+          set -e
+          rm -rf MargyT/examples/ultplug
+          mkdir -p MargyT/examples/ultplug/java/cat/cuuw619/faklikes
+          cp manifest.json MargyT/examples/ultplug/manifest.json
+          cp java/cat/cuuw619/faklikes/FakeLikes.java \
+            MargyT/examples/ultplug/java/cat/cuuw619/faklikes/FakeLikes.java
+          cd MargyT
+          python3 -m margyt.plugin examples/ultplug
+          find examples/ultplug -maxdepth 2 -type f -print
+
+      - name: Verify plugin archive
+        shell: bash
+        run: |
+          set -e
+          test -f MargyT/examples/ultplug/margyt.faklikes.mtp
+          unzip -l MargyT/examples/ultplug/margyt.faklikes.mtp
+
+      - name: Upload .mtp
+        uses: actions/upload-artifact@v4
+        with:
+          name: margyt-fake-likes
+          path: MargyT/examples/ultplug/margyt.faklikes.mtp
+          if-no-files-found: error
