@@ -1,11 +1,11 @@
 {
-  "id": "margyt.faklikes",
-  "name": "Fake Likes",
-  "name_ru": "Фейк-лайки",
-  "version": "1.0.0",
+  "id": "margyt.zftoz",
+  "name": "Zftoz",
+  "name_ru": "Zftoz",
+  "version": "2.0.0",
   "author": "cuuw619-maker",
-  "description": "Locally changes the displayed TikTok like counter.",
-  "description_ru": "Локально изменяет отображаемое количество лайков в TikTok.",
+  "description": "Zftoz MultiTool for MargyT: fake like counter UI, diagnostics and smooth UI effects.",
+  "description_ru": "Zftoz MultiTool для MargyT: фейковый счётчик лайков, диагностика и плавные эффекты интерфейса.",
   "entry": "cat.cuuw619.faklikes.FakeLikes",
   "min_api": 1
 }
