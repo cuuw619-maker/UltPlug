@@ -29,18 +29,13 @@ jobs:
           mkdir -p MargyT/examples/multitool/java/cat/cuuw619/faklikes
           cp manifest.json MargyT/examples/multitool/manifest.json
           cp java/cat/cuuw619/faklikes/FakeLikes.java MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java
-          sed -i 's/set(t,/t.setText(/g' MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java
-          if grep -q 'set(t,' MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java; then
-            echo 'Unpatched set(t,...) remains'
-            exit 1
-          fi
           cd MargyT
           python3 -m margyt.plugin examples/multitool
           test -f examples/multitool/margyt.multitool.mtp
           unzip -l examples/multitool/margyt.multitool.mtp
-      - name: Upload Multitool 0.0.6
+      - name: Upload Multitool 0.0.7
         uses: actions/upload-artifact@v4
         with:
-          name: Multitool-0.0.6
+          name: Multitool-0.0.7
           path: MargyT/examples/multitool/margyt.multitool.mtp
           if-no-files-found: error
