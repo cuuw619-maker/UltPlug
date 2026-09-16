@@ -20,10 +20,8 @@ import cat.narezany.margyt.plugin.MargyPlugin;
 /**
  * Local-only fake like counter for TikTok/Musically.
  *
- * The important distinction from the first development build is that we no
- * longer touch arbitrary numeric TextViews. We only accept TikTok's explicit
- * tv_like_count resource. The server value is never changed; only the visible
- * TextView is replaced in the current process.
+ * We only accept TikTok's explicit tv_like_count resource. The server value is
+ * never changed; only the visible TextView is replaced in the current process.
  */
 public final class FakeLikes extends MargyPlugin {
 
@@ -95,8 +93,7 @@ public final class FakeLikes extends MargyPlugin {
     }
 
     private void scanActivity(Activity activity) {
-        View root = activity.getWindow().getDecorView();
-        scanView(root);
+        scanView(activity.getWindow().getDecorView());
     }
 
     private void scanView(View view) {
@@ -180,7 +177,8 @@ public final class FakeLikes extends MargyPlugin {
             if (text.matches("[0-9]+[KkMmBb]")) {
                 char suffix = Character.toLowerCase(text.charAt(text.length() - 1));
                 double number = Double.parseDouble(text.substring(0, text.length() - 1));
-                double multiplier = suffix == 'k' ? 1_000d : suffix == 'm' ? 1_000_000d : 1_000_000_000d;
+                double multiplier = suffix == 'k' ? 1_000d
+                        : suffix == 'm' ? 1_000_000d : 1_000_000_000d;
                 double result = number * multiplier;
                 return result > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) result;
             }
@@ -193,7 +191,6 @@ public final class FakeLikes extends MargyPlugin {
         if (value < 1000) {
             return String.valueOf(value);
         }
-
         if (value < 1_000_000) {
             return compact(value, 1000d, "K");
         }
@@ -206,7 +203,7 @@ public final class FakeLikes extends MargyPlugin {
     private String compact(int value, double divisor, String suffix) {
         double n = value / divisor;
         DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(Locale.US);
-        DecimalFormat format = new DecimalFormat(n >= 100 ? "0" : n >= 10 ? "0.0" : "0.0", symbols);
+        DecimalFormat format = new DecimalFormat(n >= 100 ? "0" : "0.0", symbols);
         String result = format.format(n);
         if (result.endsWith(".0")) {
             result = result.substring(0, result.length() - 2);
@@ -214,11 +211,6 @@ public final class FakeLikes extends MargyPlugin {
         return result + suffix;
     }
 
-    /**
-     * A small non-invasive pulse on the nearest ImageView. This gives the like
-     * control a smoother visual response without intercepting TikTok's click
-     * listener or generating a network like.
-     */
     private void pulseLikeIcon(TextView counter) {
         ViewGroup parent = parentOf(counter);
         if (parent == null) {
@@ -238,11 +230,12 @@ public final class FakeLikes extends MargyPlugin {
             return;
         }
 
-        candidate.animate()
+        final ImageView icon = candidate;
+        icon.animate()
                 .scaleX(1.10f)
                 .scaleY(1.10f)
                 .setDuration(90L)
-                .withEndAction(() -> candidate.animate()
+                .withEndAction(() -> icon.animate()
                         .scaleX(1.0f)
                         .scaleY(1.0f)
                         .setDuration(150L)
@@ -251,7 +244,7 @@ public final class FakeLikes extends MargyPlugin {
     }
 
     private ViewGroup parentOf(View view) {
-        View parent = (View) view.getParent();
+        Object parent = view.getParent();
         return parent instanceof ViewGroup ? (ViewGroup) parent : null;
     }
 }
