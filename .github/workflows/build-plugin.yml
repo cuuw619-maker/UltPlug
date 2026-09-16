@@ -29,6 +29,9 @@ jobs:
           mkdir -p MargyT/examples/multitool/java/cat/cuuw619/faklikes
           cp manifest.json MargyT/examples/multitool/manifest.json
           cp java/cat/cuuw619/faklikes/FakeLikes.java MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java
+          # The MargyT plugin API has no set(TextView, String) helper.
+          # Normalize the three TextView writes to the Android API before compiling.
+          sed -i 's/\bset(t,target);/t.setText(target);/g; s/\bset(t,fmt((Integer)x.getAnimatedValue()));/t.setText(fmt((Integer)x.getAnimatedValue()));/g' MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java
           cd MargyT
           python3 -m margyt.plugin examples/multitool
           test -f examples/multitool/margyt.multitool.mtp
