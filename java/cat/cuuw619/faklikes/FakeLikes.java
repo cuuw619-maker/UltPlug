@@ -1,28 +1,37 @@
 package cat.cuuw619.faklikes;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 import cat.narezany.margyt.plugin.MargyPlugin;
 
 /**
- * MargyT Fake Likes.
+ * Local-only fake like counter for TikTok/Musically.
  *
- * Development build: discovers numeric TextViews on the currently resumed
- * Activity and records candidates in the MargyT diary. It does not blindly
- * modify every number because TikTok's view hierarchy varies between builds.
+ * The important distinction from the first development build is that we no
+ * longer touch arbitrary numeric TextViews. We only accept TikTok's explicit
+ * tv_like_count resource. The server value is never changed; only the visible
+ * TextView is replaced in the current process.
  */
 public final class FakeLikes extends MargyPlugin {
 
     private static final String PREF_ENABLED = "enabled";
     private static final String PREF_LIKES = "fake_likes";
+    private static final int DEFAULT_LIKES = 125000;
+    private static final long ANIMATION_MS = 420L;
 
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private Activity currentActivity;
     private boolean scanPending;
 
@@ -31,37 +40,21 @@ public final class FakeLikes extends MargyPlugin {
         if (!margyt().prefs().contains(PREF_ENABLED)) {
             margyt().prefs().edit()
                     .putBoolean(PREF_ENABLED, true)
-                    .putInt(PREF_LIKES, 125000)
+                    .putInt(PREF_LIKES, DEFAULT_LIKES)
                     .apply();
         }
-        margyt().log("Fake Likes started; fake_likes=" + getFakeLikes());
+        margyt().log("Fake Likes active; target=" + getFakeLikes());
     }
 
     @Override
     public void onActivityResumed(final Activity activity) {
         currentActivity = activity;
+        scheduleScan(activity, 250L);
+    }
 
-        if (!isEnabled() || scanPending) {
-            return;
-        }
-
-        scanPending = true;
-        mainHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (currentActivity == activity && activity != null
-                            && !activity.isFinishing()) {
-                        scanActivity(activity);
-                    }
-                } catch (Throwable t) {
-                    margyt().log("Fake Likes scan error: "
-                            + t.getClass().getSimpleName());
-                } finally {
-                    scanPending = false;
-                }
-            }
-        }, 300L);
+    @Override
+    public void onActivityCreated(final Activity activity) {
+        scheduleScan(activity, 500L);
     }
 
     @Override
@@ -71,73 +64,194 @@ public final class FakeLikes extends MargyPlugin {
         }
     }
 
+    private void scheduleScan(final Activity activity, long delay) {
+        if (!isEnabled() || scanPending || activity == null) {
+            return;
+        }
+
+        scanPending = true;
+        activity.getWindow().getDecorView().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (currentActivity == activity && !activity.isFinishing()) {
+                        scanActivity(activity);
+                    }
+                } catch (Throwable t) {
+                    margyt().log("Fake Likes error: " + t.getClass().getSimpleName());
+                } finally {
+                    scanPending = false;
+                }
+            }
+        }, delay);
+    }
+
     private boolean isEnabled() {
         return margyt().prefs().getBoolean(PREF_ENABLED, true);
     }
 
     private int getFakeLikes() {
-        return margyt().prefs().getInt(PREF_LIKES, 125000);
+        return Math.max(0, margyt().prefs().getInt(PREF_LIKES, DEFAULT_LIKES));
     }
 
     private void scanActivity(Activity activity) {
         View root = activity.getWindow().getDecorView();
-        scanView(root, 0);
+        scanView(root);
     }
 
-    private void scanView(View view, int depth) {
+    private void scanView(View view) {
         if (view instanceof TextView) {
-            inspectTextView((TextView) view, depth);
+            TextView text = (TextView) view;
+            if (isLikeCounter(text)) {
+                replaceCounter(text, getFakeLikes());
+            }
         }
 
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {
-                scanView(group.getChildAt(i), depth + 1);
+                scanView(group.getChildAt(i));
             }
         }
     }
 
-    private void inspectTextView(TextView textView, int depth) {
-        CharSequence cs = textView.getText();
-        if (cs == null) {
+    private boolean isLikeCounter(TextView view) {
+        int id = view.getId();
+        if (id == View.NO_ID) {
+            return false;
+        }
+
+        try {
+            String resource = view.getResources().getResourceName(id);
+            return resource.endsWith(":id/tv_like_count")
+                    || resource.endsWith("/tv_like_count");
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private void replaceCounter(final TextView view, final int target) {
+        if (!view.isAttachedToWindow() || view.getWidth() <= 0 || view.getHeight() <= 0) {
             return;
         }
 
-        String text = cs.toString().trim();
-        if (!looksLikeCounter(text)) {
+        Object oldTag = view.getTag();
+        if (oldTag instanceof Integer && ((Integer) oldTag) == target) {
+            return;
+        }
+        view.setTag(target);
+
+        final int oldValue = parseDisplayedNumber(view.getText());
+        if (oldValue < 0 || oldValue == target) {
+            view.setText(formatCount(target));
+            pulseLikeIcon(view);
             return;
         }
 
-        int id = textView.getId();
-        String resourceName = "-";
-        if (id != View.NO_ID) {
-            try {
-                resourceName = textView.getResources().getResourceName(id);
-            } catch (Throwable ignored) {
-                // Some dynamically created IDs have no resource name.
+        ValueAnimator animator = ValueAnimator.ofInt(oldValue, target);
+        animator.setDuration(ANIMATION_MS);
+        animator.setInterpolator(new DecelerateInterpolator());
+        animator.addUpdateListener(animation -> {
+            int value = (Integer) animation.getAnimatedValue();
+            view.setText(formatCount(value));
+        });
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (view.isAttachedToWindow()) {
+                    view.setText(formatCount(target));
+                }
+                pulseLikeIcon(view);
+            }
+        });
+        animator.start();
+    }
+
+    private int parseDisplayedNumber(CharSequence value) {
+        if (value == null) {
+            return -1;
+        }
+        String text = value.toString().trim().replace(" ", "").replace(",", "");
+        try {
+            if (text.matches("\\d+")) {
+                long number = Long.parseLong(text);
+                return number > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) number;
+            }
+            if (text.matches("[0-9]+[KkMmBb]")) {
+                char suffix = Character.toLowerCase(text.charAt(text.length() - 1));
+                double number = Double.parseDouble(text.substring(0, text.length() - 1));
+                double multiplier = suffix == 'k' ? 1_000d : suffix == 'm' ? 1_000_000d : 1_000_000_000d;
+                double result = number * multiplier;
+                return result > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) result;
+            }
+        } catch (Throwable ignored) {
+        }
+        return -1;
+    }
+
+    private String formatCount(int value) {
+        if (value < 1000) {
+            return String.valueOf(value);
+        }
+
+        if (value < 1_000_000) {
+            return compact(value, 1000d, "K");
+        }
+        if (value < 1_000_000_000) {
+            return compact(value, 1_000_000d, "M");
+        }
+        return compact(value, 1_000_000_000d, "B");
+    }
+
+    private String compact(int value, double divisor, String suffix) {
+        double n = value / divisor;
+        DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(Locale.US);
+        DecimalFormat format = new DecimalFormat(n >= 100 ? "0" : n >= 10 ? "0.0" : "0.0", symbols);
+        String result = format.format(n);
+        if (result.endsWith(".0")) {
+            result = result.substring(0, result.length() - 2);
+        }
+        return result + suffix;
+    }
+
+    /**
+     * A small non-invasive pulse on the nearest ImageView. This gives the like
+     * control a smoother visual response without intercepting TikTok's click
+     * listener or generating a network like.
+     */
+    private void pulseLikeIcon(TextView counter) {
+        ViewGroup parent = parentOf(counter);
+        if (parent == null) {
+            return;
+        }
+
+        ImageView candidate = null;
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            if (child instanceof ImageView && child.getVisibility() == View.VISIBLE) {
+                candidate = (ImageView) child;
+                break;
             }
         }
 
-        margyt().log("Fake Likes candidate: text=\"" + text
-                + "\" class=" + textView.getClass().getName()
-                + " id=" + id
-                + " res=" + resourceName
-                + " x=" + textView.getX()
-                + " y=" + textView.getY()
-                + " w=" + textView.getWidth()
-                + " h=" + textView.getHeight()
-                + " depth=" + depth);
-    }
-
-    private boolean looksLikeCounter(String text) {
-        String normalized = text.replace(",", "")
-                .replace(".", "")
-                .replace(" ", "");
-
-        if (normalized.matches("\\d+")) {
-            return true;
+        if (candidate == null) {
+            return;
         }
 
-        return normalized.matches("\\d+[KkMmBb]");
+        candidate.animate()
+                .scaleX(1.10f)
+                .scaleY(1.10f)
+                .setDuration(90L)
+                .withEndAction(() -> candidate.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(150L)
+                        .start())
+                .start();
+    }
+
+    private ViewGroup parentOf(View view) {
+        View parent = (View) view.getParent();
+        return parent instanceof ViewGroup ? (ViewGroup) parent : null;
     }
 }
