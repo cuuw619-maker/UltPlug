@@ -33,9 +33,9 @@ jobs:
           python3 -m margyt.plugin examples/multitool
           test -f examples/multitool/margyt.multitool.mtp
           unzip -l examples/multitool/margyt.multitool.mtp
-      - name: Upload Multitool 0.0.4
+      - name: Upload Multitool 0.0.5
         uses: actions/upload-artifact@v4
         with:
-          name: Multitool-0.0.4
+          name: Multitool-0.0.5
           path: MargyT/examples/multitool/margyt.multitool.mtp
           if-no-files-found: error
