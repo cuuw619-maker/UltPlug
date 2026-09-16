@@ -8,46 +8,34 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout UltPlug
         uses: actions/checkout@v4
-
       - name: Checkout MargyT toolchain
         uses: actions/checkout@v4
         with:
           repository: narezany/MargyT
           path: MargyT
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Build .mtp
+      - name: Build Zftoz .mtp
         shell: bash
         run: |
           set -e
           rm -rf MargyT/examples/zftoz
           mkdir -p MargyT/examples/zftoz/java/cat/cuuw619/faklikes
           cp manifest.json MargyT/examples/zftoz/manifest.json
-          cp java/cat/cuuw619/faklikes/FakeLikes.java \
-            MargyT/examples/zftoz/java/cat/cuuw619/faklikes/FakeLikes.java
+          cp java/cat/cuuw619/faklikes/FakeLikes.java MargyT/examples/zftoz/java/cat/cuuw619/faklikes/FakeLikes.java
           cd MargyT
           python3 -m margyt.plugin examples/zftoz
-          find examples/zftoz -maxdepth 2 -type f -print
-
-      - name: Verify plugin archive
-        shell: bash
-        run: |
-          set -e
-          test -f MargyT/examples/zftoz/margyt.zftoz.mtp
-          unzip -l MargyT/examples/zftoz/margyt.zftoz.mtp
-
-      - name: Upload .mtp
+          test -f examples/zftoz/margyt.zftoz.mtp
+          unzip -l examples/zftoz/margyt.zftoz.mtp
+      - name: Upload Zftoz 2.2.0
         uses: actions/upload-artifact@v4
         with:
-          name: Zftoz-2.1.0
+          name: Zftoz-2.2.0
           path: MargyT/examples/zftoz/margyt.zftoz.mtp
           if-no-files-found: error
