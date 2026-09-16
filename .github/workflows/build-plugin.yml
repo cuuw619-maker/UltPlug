@@ -29,23 +29,11 @@ jobs:
           mkdir -p MargyT/examples/multitool/java/cat/cuuw619/faklikes
           cp manifest.json MargyT/examples/multitool/manifest.json
           cp java/cat/cuuw619/faklikes/FakeLikes.java MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java
-
-          # Normalize every legacy helper-style TextView write to the Android API.
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java')
-          s = p.read_text()
-          s = s.replace('set(t,', 't.setText(')
-          s = s.replace('''    private boolean isCommentScreen(Activity a,View root){String n=a.getClass().getName().toLowerCase(Locale.US);if(n.contains("detail")||n.contains("comment"))return true;return hasCommentComposer(root);}
-    private boolean hasCommentComposer(View root){ArrayList<TextView> ts=new ArrayList<TextView>();collectText(root,ts);for(TextView t:ts){String s=String.valueOf(t.getHint())+" "+String.valueOf(t.getContentDescription())+" "+String.valueOf(t.getText());s=s.toLowerCase(Locale.US);if(s.contains("add comment")||s.contains("comment")||s.contains("комментар")||s.contains("коментар"))return true;}return false;}''', '''    private boolean isCommentScreen(Activity a,View root){String n=a.getClass().getName().toLowerCase(Locale.US);if(n.contains("detail")||n.contains("comment"))return true;return hasCommentComposer(root);}
-    private boolean hasCommentComposer(View root){if(!(root instanceof ViewGroup))return false;ArrayList<View> inputs=new ArrayList<View>();collectInputs(root,inputs);for(View v:inputs){String s=String.valueOf(v.getContentDescription())+" "+String.valueOf(v instanceof TextView?((TextView)v).getHint():"")+" "+String.valueOf(v instanceof TextView?((TextView)v).getText():"");s=s.toLowerCase(Locale.US);if((s.contains("comment")||s.contains("комментар")||s.contains("коментар")||s.contains("add a comment"))&&v.isShown()&&v.isEnabled())return true;}return false;}
-    private void collectInputs(View v,ArrayList<View> out){if(!v.isShown())return;if(v instanceof EditText)out.add(v);if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)collectInputs(g.getChildAt(i),out);}}''')
-          p.write_text(s)
-          if 'set(t,' in s:
-              raise SystemExit('Unpatched set(t,...) remains')
-          print('Multitool source patched for build')
-          PY
-
+          sed -i 's/set(t,/t.setText(/g' MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java
+          if grep -q 'set(t,' MargyT/examples/multitool/java/cat/cuuw619/faklikes/FakeLikes.java; then
+            echo 'Unpatched set(t,...) remains'
+            exit 1
+          fi
           cd MargyT
           python3 -m margyt.plugin examples/multitool
           test -f examples/multitool/margyt.multitool.mtp
