@@ -14,6 +14,8 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.Locale;
@@ -21,7 +23,6 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import cat.narezany.margyt.plugin.MargyPlugin;
 
-/** Multitool for MargyT. Profile likes are deliberately separated from feed/comment likes. */
 public final class FakeLikes extends MargyPlugin {
     private static final String LIKES="fake_likes";
     private static final String ANIM="animation_mode";
@@ -77,22 +78,17 @@ public final class FakeLikes extends MargyPlugin {
 
     private int findLikes(View v){
         int n=0;
-        if(v instanceof TextView){
-            TextView t=(TextView)v;
-            if(isLikeResource(t)){n++;watch(t);apply(t);}
-        }
+        if(v instanceof TextView){TextView t=(TextView)v;if(isLikeResource(t)){n++;watch(t);apply(t);}}
         if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)n+=findLikes(g.getChildAt(i));}
         return n+findLabelLikes(v);
     }
-
-    /* TikTok has changed the profile statistics ids more than once. The label is much more stable. */
     private int findLabelLikes(View root){
         int n=0;
         if(root instanceof ViewGroup){
             ViewGroup g=(ViewGroup)root;
             for(int i=0;i<g.getChildCount();i++){
                 View c=g.getChildAt(i);
-                if(c instanceof TextView && isLikesLabel((TextView)c)){
+                if(c instanceof TextView&&isLikesLabel((TextView)c)){
                     TextView target=nearestNumber(g,i);
                     if(target!=null&&!isLikeResource(target)){watch(target);apply(target);n++;}
                 }
@@ -116,7 +112,7 @@ public final class FakeLikes extends MargyPlugin {
     private boolean isNumberText(TextView t){
         if(!t.isShown()||t.getWidth()<=0||t.getHeight()<=0)return false;
         String s=String.valueOf(t.getText()).trim().replace(",","").replace(" ","");
-        return s.matches("\\d+(?:\\.\\d+)?[KkMmBb]?")||s.matches("\\d+");
+        return s.matches("\\d+(?:\\.\\d+)?[KkMmBb]?");
     }
     private boolean isLikesLabel(TextView t){
         String s=String.valueOf(t.getText()).trim().toLowerCase(Locale.US);
@@ -142,8 +138,7 @@ public final class FakeLikes extends MargyPlugin {
         });
     }
     private void apply(final TextView t){
-        String old=String.valueOf(t.getText());
-        final String target=fmt(likes());
+        String old=String.valueOf(t.getText());final String target=fmt(likes());
         if(target.equals(old))return;
         if(!custom()){set(t,target);return;}
         long start=parse(old);
@@ -182,24 +177,18 @@ public final class FakeLikes extends MargyPlugin {
     }
     private boolean profileStatsSignal(View root){
         int followers=0,following=0,likesLabels=0;
-        java.util.ArrayList<TextView> labels=new java.util.ArrayList<TextView>();
-        collectText(root,labels);
+        java.util.ArrayList<TextView> labels=new java.util.ArrayList<TextView>();collectText(root,labels);
         for(TextView t:labels){String s=String.valueOf(t.getText()).trim().toLowerCase(Locale.US);if(s.equals("followers")||s.equals("подписчики")||s.equals("підписники"))followers++;if(s.equals("following")||s.equals("подписки")||s.equals("підписки"))following++;if(isLikesLabel(t))likesLabels++;}
         return likesLabels>0&&(followers>0||following>0);
     }
-    private void collectText(View v,java.util.ArrayList<TextView> out){
-        if(!v.isShown())return;
-        if(v instanceof TextView)out.add((TextView)v);
-        if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)collectText(g.getChildAt(i),out);}
-    }
+    private void collectText(View v,java.util.ArrayList<TextView> out){if(!v.isShown())return;if(v instanceof TextView)out.add((TextView)v);if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)collectText(g.getChildAt(i),out);}}
 
     private int findStickerControls(View v){
         int n=0;
-        if(v.isShown()&&v.isClickable()&&v.getId()!=View.NO_ID){
-            try{String r=v.getResources().getResourceName(v.getId()).toLowerCase(Locale.US);if((r.contains("sticker")||r.contains("emoji")||r.contains("gif"))&&(r.contains("comment")||r.contains("input")||r.contains("send")))n++;}catch(Throwable e){}
+        if(v.isShown()&&v.isClickable()){
+            try{if(v.getId()!=View.NO_ID){String r=v.getResources().getResourceName(v.getId()).toLowerCase(Locale.US);if(r.contains("sticker")||r.contains("emoji")||r.contains("gif"))n++;}}catch(Throwable e){}
+            CharSequence cd=v.getContentDescription();if(cd!=null){String s=cd.toString().toLowerCase(Locale.US);if(s.contains("sticker")||s.contains("emoji")||s.contains("gif")||s.contains("стикер")||s.contains("емодзи"))n++;}
         }
-        CharSequence cd=v.getContentDescription();
-        if(v.isShown()&&v.isClickable()&&cd!=null){String s=cd.toString().toLowerCase(Locale.US);if(s.contains("sticker")||s.contains("emoji")||s.contains("gif")||s.contains("стикер")||s.contains("емодзи"))n++;}
         if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)n+=findStickerControls(g.getChildAt(i));}
         return n;
     }
@@ -228,21 +217,15 @@ public final class FakeLikes extends MargyPlugin {
     private void removeOverlays(){if(activity==null)return;View r=activity.getWindow().getDecorView();removeTagged(r,TAG);removeTagged(r,STICKER_TAG);}
 
     private void dialog(final Activity a){
-        final EditText e=new EditText(a);e.setInputType(InputType.TYPE_CLASS_NUMBER);e.setSingleLine(true);e.setText(String.valueOf(likes()));e.setSelectAllOnFocus(true);
+        LinearLayout box=new LinearLayout(a);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(8,0,8,0);
+        final EditText e=new EditText(a);e.setInputType(InputType.TYPE_CLASS_NUMBER);e.setSingleLine(true);e.setText(String.valueOf(likes()));e.setSelectAllOnFocus(true);box.addView(e,new LinearLayout.LayoutParams(-1,-2));
+        TextView speedLabel=new TextView(a);speedLabel.setText("Скорость анимаций: "+speed()+"%");speedLabel.setPadding(0,12,0,4);box.addView(speedLabel,new LinearLayout.LayoutParams(-1,-2));
+        final SeekBar speedBar=new SeekBar(a);speedBar.setMax(150);speedBar.setProgress(speed()-50);box.addView(speedBar,new LinearLayout.LayoutParams(-1,-2));
+        speedBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar b,int p,boolean from){speedLabel.setText("Скорость анимаций: "+(p+50)+"%");}public void onStartTrackingTouch(SeekBar b){}public void onStopTrackingTouch(SeekBar b){}});
         final String[] modes={"custom","stock"};int checked=custom()?0:1;
-        final String[] speeds={"50","75","100","125","150","200"};
-        int current=0;for(int i=0;i<speeds.length;i++)if(Integer.parseInt(speeds[i])==speed())current=i;
-        AlertDialog d=new AlertDialog.Builder(a).setTitle("Multitool 0.0.5")
-            .setMessage("Лайки меняются только на распознанном профиле.\nCustom — плавные анимации Multitool, Stock — без кастомной анимации.")
-            .setView(e)
-            .setSingleChoiceItems(new String[]{"Custom animations","Stock animations"},checked,(di,w)->{margyt().prefs().edit().putString(ANIM,modes[w]).apply();margyt().log("MULTITOOL_ANIMATION mode="+modes[w]);})
-            .setNegativeButton("Закрыть",null)
-            .setNeutralButton("Сбросить 125K",(di,w)->{margyt().prefs().edit().putInt(LIKES,DEFAULT).apply();e.setText(String.valueOf(DEFAULT));scan(a);})
-            .setPositiveButton("Применить",null).create();
-        d.setOnShowListener(x->{d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{try{long n=Long.parseLong(e.getText().toString().trim());if(n<0||n>2147483647)throw new Exception();margyt().prefs().edit().putInt(LIKES,(int)n).apply();margyt().log("MULTITOOL_LIKE_SETTING value="+n);scan(a);d.dismiss();}catch(Throwable z){e.setError("0..2147483647");}});});
+        AlertDialog d=new AlertDialog.Builder(a).setTitle("Multitool 0.0.5").setMessage("Лайки меняются только на распознанном профиле.\nCustom — плавные анимации Multitool, Stock — без кастомной анимации.").setView(box).setSingleChoiceItems(new String[]{"Custom animations","Stock animations"},checked,(di,w)->{margyt().prefs().edit().putString(ANIM,modes[w]).apply();margyt().log("MULTITOOL_ANIMATION mode="+modes[w]);}).setNeutralButton("Сбросить 125K",(di,w)->{margyt().prefs().edit().putInt(LIKES,DEFAULT).apply();e.setText(String.valueOf(DEFAULT));scan(a);}).setNegativeButton("Закрыть",null).setPositiveButton("Применить",null).create();
+        d.setOnShowListener(x->d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{try{long n=Long.parseLong(e.getText().toString().trim());if(n<0||n>2147483647)throw new Exception();int s=speedBar.getProgress()+50;margyt().prefs().edit().putInt(LIKES,(int)n).putInt(SPEED,s).apply();margyt().log("MULTITOOL_SETTINGS target="+n+" speed="+s+" mode="+animation());scan(a);d.dismiss();}catch(Throwable z){e.setError("0..2147483647");}}));
         d.show();
-        d.getListView().postDelayed(()->{},1);
-        margyt().log("MULTITOOL_SETTINGS speed="+speeds[current]+"% current_animation="+animation());
     }
     private void set(TextView t,String s){try{t.setText(s);}catch(Throwable ignored){}}
     private long parse(String s){try{s=s.trim().replace(",","").replace(" ","");if(s.matches("\\d+"))return Long.parseLong(s);char c=Character.toLowerCase(s.charAt(s.length()-1));if(c=='k'||c=='m'||c=='b'){double n=Double.parseDouble(s.substring(0,s.length()-1));return(long)(n*(c=='k'?1000:c=='m'?1000000:1000000000));}}catch(Throwable e){}return -1;}
