@@ -1,4 +1,4 @@
-name: Build MargyT plugin
+name: Build Zftoz MargyT plugin
 
 on:
   workflow_dispatch:
@@ -29,25 +29,25 @@ jobs:
         shell: bash
         run: |
           set -e
-          rm -rf MargyT/examples/ultplug
-          mkdir -p MargyT/examples/ultplug/java/cat/cuuw619/faklikes
-          cp manifest.json MargyT/examples/ultplug/manifest.json
+          rm -rf MargyT/examples/zftoz
+          mkdir -p MargyT/examples/zftoz/java/cat/cuuw619/faklikes
+          cp manifest.json MargyT/examples/zftoz/manifest.json
           cp java/cat/cuuw619/faklikes/FakeLikes.java \
-            MargyT/examples/ultplug/java/cat/cuuw619/faklikes/FakeLikes.java
+            MargyT/examples/zftoz/java/cat/cuuw619/faklikes/FakeLikes.java
           cd MargyT
-          python3 -m margyt.plugin examples/ultplug
-          find examples/ultplug -maxdepth 2 -type f -print
+          python3 -m margyt.plugin examples/zftoz
+          find examples/zftoz -maxdepth 2 -type f -print
 
       - name: Verify plugin archive
         shell: bash
         run: |
           set -e
-          test -f MargyT/examples/ultplug/margyt.faklikes.mtp
-          unzip -l MargyT/examples/ultplug/margyt.faklikes.mtp
+          test -f MargyT/examples/zftoz/margyt.zftoz.mtp
+          unzip -l MargyT/examples/zftoz/margyt.zftoz.mtp
 
       - name: Upload .mtp
         uses: actions/upload-artifact@v4
         with:
-          name: margyt-fake-likes
-          path: MargyT/examples/ultplug/margyt.faklikes.mtp
+          name: Zftoz-2.1.0
+          path: MargyT/examples/zftoz/margyt.zftoz.mtp
           if-no-files-found: error
