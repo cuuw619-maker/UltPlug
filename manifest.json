@@ -1,11 +1,11 @@
 {
-  "id": "margyt.zftoz",
-  "name": "Zftoz",
-  "name_ru": "Zftoz",
-  "version": "2.2.0",
-  "author": "cuuw619-maker",
-  "description": "Zftoz MultiTool for MargyT: fake like counter UI, profile editor, diagnostics and smooth UI effects.",
-  "description_ru": "Zftoz MultiTool для MargyT: фейковые лайки, редактор в профиле, диагностика и плавные UI-эффекты.",
+  "id": "margyt.multitool",
+  "name": "Multitool",
+  "name_ru": "Multitool",
+  "version": "2.3.0",
+  "author": "Zftoz",
+  "description": "Multitool for MargyT by Zftoz: fake like counter, like animations, profile controls and diagnostics.",
+  "description_ru": "Multitool для MargyT от Zftoz: фейковые лайки, анимации лайков, управление профилем и диагностика.",
   "entry": "cat.cuuw619.faklikes.FakeLikes",
   "min_api": 1
 }
