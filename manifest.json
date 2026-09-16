@@ -1,0 +1,11 @@
+{
+  "id": "margyt.faklikes",
+  "name": "Fake Likes",
+  "name_ru": "Фейк-лайки",
+  "version": "1.0.0",
+  "author": "cuuw619-maker",
+  "description": "Locally changes the displayed TikTok like counter.",
+  "description_ru": "Локально изменяет отображаемое количество лайков в TikTok.",
+  "entry": "cat.cuuw619.faklikes.FakeLikes",
+  "min_api": 1
+}
