@@ -2,10 +2,10 @@
   "id": "margyt.multitool",
   "name": "Multitool",
   "name_ru": "Multitool",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "author": "Zftoz",
-  "description": "Multitool for MargyT by Zftoz: profile-only fake likes, smooth animations and native comment sticker integration.",
-  "description_ru": "Multitool для MargyT от Zftoz: лайки только профиля, плавные анимации и интеграция со стикерами комментариев.",
+  "description": "Multitool for MargyT by Zftoz: profile-only fake likes, selectable animations and a comment sticker button.",
+  "description_ru": "Multitool для MargyT от Zftoz: лайки только профиля, разные анимации и кнопка стикеров в комментариях.",
   "entry": "cat.cuuw619.faklikes.FakeLikes",
   "min_api": 1
 }
